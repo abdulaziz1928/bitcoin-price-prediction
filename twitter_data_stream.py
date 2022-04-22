@@ -4,9 +4,13 @@ import preprocessor as p
 from stop_words import get_stop_words
 from textblob import TextBlob
 import numpy as np
+import datetime
+import time
 
 
 def main():
+    path = "twitter_sentiments.csv"
+    f = open(path, "a")
     # set twitter api credentials
     consumer_key = 'aHYihqacTLrkRqtfh1dywbX21'
     consumer_secret = 'GMN8oUbIA4AiQIJlNfXAfs3nwA1nOIBtbGRVJzFNKgu5jPsKvj'
@@ -18,25 +22,20 @@ def main():
     auth.set_access_token(access_token, access_token_secret)
     twitter_api = tweepy.API(auth)
 
-    # Get tweets related to keywords
-    tweets = twitter_api.search_tweets("bitcoin", count=4)
+    while True:
+        # Get tweets related to keywords
+        tweets = twitter_api.search_tweets("bitcoin", count=100)
 
-    # Prepocessing
-    cleaned_tweets = clean_tweets(tweets)
-    for tweet in cleaned_tweets:
-        print(tweet)
-    cleaned_tweets = remove_stop_words(cleaned_tweets)
+        # Prepocessing
+        cleaned_tweets = clean_tweets(tweets)
+        cleaned_tweets = remove_stop_words(cleaned_tweets)
 
-    print("-------------------")
-    for tweet in cleaned_tweets:
-        print(tweet)
+        # Calculate sentiments
+        polarity = get_polarity(cleaned_tweets)
+        mean_polarity = np.mean(polarity)
 
-    polarity = get_polarity(cleaned_tweets)
-    for p in polarity:
-        print(p)
-
-    m = np.mean(polarity)
-    print(m)
+        store_sentiment(mean_polarity, f)
+        time.sleep(30)
 
 
 # Cleans the tweets by removing the following:
@@ -60,6 +59,13 @@ def get_polarity(tweets):
         res = TextBlob(tweet)
         polarities.append(res.sentiment.polarity)
     return polarities
+
+
+def store_sentiment(sentiment, f):
+    f.write(str(sentiment))
+    f.write(","+datetime.datetime.now().strftime("%y-%m-%d-%H-%M"))
+    f.write("\n")
+    f.flush()
 
 
 main()
